@@ -1,5 +1,5 @@
-const jwt = require("jsonwebtoken");
 const { Users, Roles } = require("../models");
+const { verifyToken } = require("../utils/jwtUtils");
 
 /**
  * Middleware untuk memeriksa apakah pengguna sudah terautentikasi
@@ -28,7 +28,14 @@ exports.authMiddleware = async (req, res, next) => {
     }
 
     // Verifikasi token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyToken(token);
+    // Jika token tidak valid
+    if (decoded.error) {
+      return res.status(401).json({
+        status: "401",
+        message: decoded.error,
+      });
+    }
 
     // Ambil user berdasarkan ID dalam token dan relasi role-nya
     const currentUser = await Users.findByPk(decoded.id, {

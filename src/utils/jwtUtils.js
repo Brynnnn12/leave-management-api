@@ -1,62 +1,77 @@
 const jwt = require("jsonwebtoken");
 
 /**
+ * Konversi waktu JWT_EXPIRES_IN (misal: 4h, 2d) menjadi milidetik
+ */
+const jwtExpiryToMs = (expiresIn) => {
+  const match = expiresIn.match(/^(\d+)([smhd])$/); // 60s, 10m, 4h, 7d
+  if (!match) return 0;
+
+  const value = parseInt(match[1]);
+  const unit = match[2];
+
+  const multipliers = {
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+  };
+
+  return value * multipliers[unit];
+};
+
+/**
  * Fungsi untuk membuat token JWT
  */
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN, // Token akan kedaluwarsa berdasarkan expiresIn
+    expiresIn: process.env.JWT_EXPIRES_IN, // Contoh: "4h", "1d"
   });
 };
 
 /**
- * Fungsi untuk mendapatkan opsi cookie
- * Opsi ini digunakan saat mengatur cookie di response
+ * Opsi cookie untuk menyimpan token JWT di browser
  */
 const getCookieOptions = () => {
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // Hanya secure di production
+    secure: process.env.NODE_ENV === "production",
     sameSite: "Strict",
+    maxAge: jwtExpiryToMs(process.env.JWT_EXPIRES_IN), // Tambahan penting
   };
 };
 
 /**
- * Fungsi untuk mengirim token ke client
- * Mengatur cookie di response dan mengirimkan informasi user
+ * Fungsi untuk mengirim token JWT ke client
  */
 const createSendToken = (user, statusCode, res) => {
-  const token = signToken(user.id); // Membuat token dengan user ID
-  const cookieOptions = getCookieOptions(); // Mendapatkan opsi cookie
+  const token = signToken(user.id); // Buat token
+  const cookieOptions = getCookieOptions(); // Ambil opsi cookie
 
-  // Mengatur cookie di response dengan nama 'jwt' dan token
+  // Simpan token ke cookie
   res.cookie("jwt", token, cookieOptions);
 
-  // Mengirim respons ke client dengan token dan informasi user
+  // Kirim response ke client
   res.status(statusCode).json({
     status: "success",
     message: "Berhasil login",
-    token, // Mengirimkan token yang juga dapat digunakan di header Authorization
+    token, // Masih dikirim juga untuk frontend SPA (opsional)
     data: {
       username: user.username,
-      email: user.email, // Mengembalikan email pengguna
+      email: user.email,
     },
   });
 };
 
 /**
- * Fungsi untuk memverifikasi token JWT
- * Menggunakan secret key untuk memverifikasi token
+ * Verifikasi token JWT dari client
  */
 const verifyToken = (token) => {
   try {
-    // Memverifikasi token menggunakan secret key
     return jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
-    // Menangani error dan memberikan informasi yang lebih jelas
     return { error: "Token tidak valid atau sudah kedaluwarsa" };
   }
 };
 
-// Mengekspor fungsi agar bisa digunakan di file lain
 module.exports = { signToken, createSendToken, verifyToken };

@@ -5,6 +5,7 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const routes = require("./routes/index");
 const { notFound, errorHandler } = require("./middlewares/errorHandler");
+const { queueMiddleware } = require("./utils/queue");
 
 const app = express();
 
@@ -14,6 +15,22 @@ app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+//queue
+app.use(queueMiddleware);
+// Middleware logging waktu eksekusi
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    console.log(
+      `[${new Date().toISOString()}] ${req.method} ${
+        req.originalUrl
+      } - ${duration}ms`
+    );
+  });
+  next();
+});
 
 // Routes
 app.use("/api", routes);

@@ -86,7 +86,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      status_pengajuan: {
+      status: {
         type: DataTypes.ENUM("pending", "disetujui", "ditolak"),
         defaultValue: "pending",
         validate: {
