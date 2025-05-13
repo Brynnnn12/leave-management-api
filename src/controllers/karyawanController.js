@@ -27,6 +27,7 @@ exports.index = asyncHandler(async (req, res) => {
 
 exports.update = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const userId = req.user.id; // Ambil ID pengguna dari token JWT
 
   // Validasi input menggunakan Joi
   const { error, value } = karyawanSchema.validate(req.body);
@@ -45,6 +46,14 @@ exports.update = asyncHandler(async (req, res) => {
     return res.status(404).json({
       status: "fail",
       message: "Karyawan tidak ditemukan",
+    });
+  }
+
+  // Pastikan pengguna yang login memiliki akses ke data karyawan ini
+  if (karyawan.user_id !== userId) {
+    return res.status(403).json({
+      status: "fail",
+      message: "Anda tidak memiliki izin untuk memperbarui data karyawan ini",
     });
   }
 

@@ -59,8 +59,17 @@ exports.authMiddleware = async (req, res, next) => {
  */
 exports.permissionMiddleware = (...roles) => {
   return (req, res, next) => {
-    const rolesName = req.user.role?.name;
+    // Pastikan req.user tersedia
+    if (!req.user || !req.user.role) {
+      return res.status(403).json({
+        status: "403",
+        message: "Anda tidak memiliki akses",
+      });
+    }
 
+    const rolesName = req.user.role.name;
+
+    // Periksa apakah role pengguna termasuk dalam daftar role yang diizinkan
     if (!roles.includes(rolesName)) {
       return res.status(403).json({
         status: "403",
